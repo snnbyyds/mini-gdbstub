@@ -14,19 +14,28 @@ typedef enum {
     EVENT_STEP,
 } gdb_event_t;
 
-typedef enum {
-    ACT_NONE,
-    ACT_RESUME,
-    ACT_SHUTDOWN,
+typedef struct {
+    enum {
+        ACT_NONE,
+        ACT_BREAKPOINT,
+        ACT_WATCH,
+        ACT_RWATCH,
+        ACT_WWATCH,
+        ACT_SHUTDOWN
+    } reason;
+    size_t data;
 } gdb_action_t;
 
 typedef enum {
     BP_SOFTWARE = 0,
+    BP_WRITE,
+    BP_READ,
+    BP_ACCESS
 } bp_type_t;
 
 struct target_ops {
-    gdb_action_t (*cont)(void *args);
-    gdb_action_t (*stepi)(void *args);
+    void (*cont)(void *args, gdb_action_t *res);
+    void (*stepi)(void *args, gdb_action_t *res);
     int (*read_reg)(void *args, int regno, size_t *value);
     int (*write_reg)(void *args, int regno, size_t value);
     int (*read_mem)(void *args, size_t addr, size_t len, void *val);

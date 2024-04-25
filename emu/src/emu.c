@@ -162,7 +162,7 @@ static int emu_write_mem(void *args, size_t addr, size_t len, void *val)
     return 0;
 }
 
-static gdb_action_t emu_cont(void *args)
+static void emu_cont(void *args, gdb_action_t *ret)
 {
     struct emu *emu = (struct emu *) args;
 
@@ -175,10 +175,11 @@ static gdb_action_t emu_cont(void *args)
         emu_exec(emu, inst);
     }
 
-    return ACT_RESUME;
+    ret->reason = ACT_RESUME;
+    ret->data = 0;
 }
 
-static gdb_action_t emu_stepi(void *args)
+static void emu_stepi(void *args, gdb_action_t *ret)
 {
     struct emu *emu = (struct emu *) args;
 
@@ -190,7 +191,8 @@ static gdb_action_t emu_stepi(void *args)
         emu_exec(emu, inst);
     }
 
-    return ACT_RESUME;
+    ret->reason = ACT_RESUME;
+    ret->data = 0;
 }
 
 static bool emu_set_bp(void *args, size_t addr, bp_type_t type)

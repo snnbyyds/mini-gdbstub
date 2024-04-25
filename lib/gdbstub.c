@@ -504,36 +504,51 @@ static gdb_event_t gdbstub_process_packet(gdbstub_t *gdbstub,
     return event;
 }
 
-static gdb_action_t gdbstub_handle_event(gdbstub_t *gdbstub,
-                                         gdb_event_t event,
-                                         void *args)
+static void gdbstub_handle_event(gdbstub_t *gdbstub,
+                                 gdb_action_t *act,
+                                 gdb_event_t event,
+                                 void *args)
 {
-    gdb_action_t act = ACT_NONE;
-
     switch (event) {
     case EVENT_CONT:
         async_io_enable(gdbstub->priv);
-        act = gdbstub->ops->cont(args);
+        gdbstub->ops->cont(args, act);
         async_io_disable(gdbstub->priv);
         break;
     case EVENT_STEP:
-        act = gdbstub->ops->stepi(args);
+        gdbstub->ops->stepi(args, act);
         break;
     case EVENT_DETACH:
-        act = ACT_SHUTDOWN;
-        break;
+        exit(0);
     default:
         break;
     }
-
-    return act;
 }
 
-static void gdbstub_act_resume(gdbstub_t *gdbstub)
+static bool gdbstub_act_resume(gdbstub_t *gdbstub, const gdb_action_t *act)
 {
     char packet_str[32];
-    sprintf(packet_str, "S%02x", GDB_SIGNAL_TRAP);
+    bool res = true;
+    switch (act->reason) {
+    case ACT_SHUTDOWN:
+        sprintf(packet_str, "W%02x", (uint8_t) act->data);
+        res = false;
+        break;
+    case ACT_BREAKPOINT:
+        sprintf(packet_str, "T%02x", GDB_SIGNAL_TRAP);
+        break;
+    case ACT_WATCH:
+    case ACT_WWATCH:
+        sprintf(packet_str, "T%02xwatch:%08zx;", GDB_SIGNAL_TRAP, act->data);
+        break;
+    case ACT_RWATCH:
+        sprintf(packet_str, "T%02xrwatch:%08zx;", GDB_SIGNAL_TRAP, act->data);
+        break;
+    case ACT_NONE:
+        return true;
+    }
     conn_send_pktstr(&gdbstub->priv->conn, packet_str);
+    return res;
 }
 
 bool gdbstub_run(gdbstub_t *gdbstub, void *args)
@@ -557,16 +572,12 @@ bool gdbstub_run(gdbstub_t *gdbstub, void *args)
         gdb_event_t event = gdbstub_process_packet(gdbstub, pkt, args);
         free(pkt);
 
-        gdb_action_t act = gdbstub_handle_event(gdbstub, event, args);
-        switch (act) {
-        case ACT_RESUME:
-            gdbstub_act_resume(gdbstub);
-            break;
-        case ACT_SHUTDOWN:
-            return true;
-        default:
-            break;
-        }
+        gdb_action_t act = {.reason = ACT_NONE};
+        gdbstub_handle_event(gdbstub, &act, event, args);
+#ifdef DEBUG
+        printf("REASON: %d, DATA: %lu\n", act.reason, act.data);
+#endif
+        if(!gdbstub_act_resume(gdbstub, &act)) return true;
     }
 
     return false;
