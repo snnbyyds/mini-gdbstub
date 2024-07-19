@@ -169,7 +169,11 @@ void conn_send_pktstr(conn_t *conn, char *pktstr)
 
 void conn_close(conn_t *conn)
 {
-    close(conn->socket_fd);
-    close(conn->listen_fd);
+    if (close(conn->socket_fd != 0)) { 
+        perror("Fail to close socket_fd");
+    }
+    if (close(conn->listen_fd != 0)) { 
+        perror("Fail to close listen_fd");
+    }
     pktbuf_destroy(&conn->pktbuf);
 }
