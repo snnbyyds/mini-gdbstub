@@ -52,7 +52,7 @@ static void *socket_reader(gdbstub_t *gdbstub)
 bool gdbstub_init(gdbstub_t *gdbstub,
                   struct target_ops *ops,
                   arch_info_t arch,
-                  char *s)
+                  const char *s)
 {
     if (s == NULL || ops == NULL)
         return false;
@@ -281,6 +281,17 @@ void process_xfer(gdbstub_t *gdbstub, char *s)
     }
 }
 
+static void process_remote_cmd(gdbstub_t *gdbstub, const char *s) {
+    const char *args = strchr(s, ',');
+    char *ret = gdbstub->ops->monitor(gdbstub->priv->args, args + 1);
+    if (ret == NULL) {
+      conn_send_pktstr(&gdbstub->priv->conn, "OK");
+    } else {
+      conn_send_pktstr(&gdbstub->priv->conn, ret);
+      free(ret);
+    }
+}
+
 static void process_query(gdbstub_t *gdbstub, char *payload)
 {
     char *name = payload;
@@ -306,6 +317,8 @@ static void process_query(gdbstub_t *gdbstub, char *payload)
         process_xfer(gdbstub, args);
     } else if (!strcmp(name, "Symbol")) {
         conn_send_pktstr(&gdbstub->priv->conn, "OK");
+    } else if (!strncmp(name, "Rcmd", 4)) {
+        process_remote_cmd(gdbstub, name);
     } else {
         conn_send_pktstr(&gdbstub->priv->conn, "");
     }

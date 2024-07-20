@@ -26,12 +26,7 @@ typedef struct {
     size_t data;
 } gdb_action_t;
 
-typedef enum {
-    BP_SOFTWARE = 0,
-    BP_WRITE,
-    BP_READ,
-    BP_ACCESS
-} bp_type_t;
+typedef enum { BP_SOFTWARE = 0, BP_WRITE, BP_READ, BP_ACCESS } bp_type_t;
 
 struct target_ops {
     void (*cont)(void *args, gdb_action_t *res);
@@ -43,6 +38,7 @@ struct target_ops {
     bool (*set_bp)(void *args, size_t addr, bp_type_t type);
     bool (*del_bp)(void *args, size_t addr, bp_type_t type);
     void (*on_interrupt)(void *args);
+    char *(*monitor)(void *args, const char *cmd);
 };
 
 typedef struct gdbstub_private gdbstub_private_t;
@@ -62,7 +58,7 @@ typedef struct {
 bool gdbstub_init(gdbstub_t *gdbstub,
                   struct target_ops *ops,
                   arch_info_t arch,
-                  char *s);
+                  const char *s);
 bool gdbstub_run(gdbstub_t *gdbstub, void *args);
 void gdbstub_close(gdbstub_t *gdbstub);
 

@@ -139,7 +139,7 @@ void conn_send_str(conn_t *conn, char *str)
     }
 }
 
-void conn_send_pktstr(conn_t *conn, char *pktstr)
+void conn_send_pktstr(conn_t *conn, const char *pktstr)
 {
     char packet[MAX_SEND_PACKET_SIZE];
     size_t len = strlen(pktstr);
@@ -169,10 +169,10 @@ void conn_send_pktstr(conn_t *conn, char *pktstr)
 
 void conn_close(conn_t *conn)
 {
-    if (close(conn->socket_fd != 0)) { 
+    if (close(conn->socket_fd != 0)) {
         perror("Fail to close socket_fd");
     }
-    if (close(conn->listen_fd != 0)) { 
+    if (close(conn->listen_fd != 0)) {
         perror("Fail to close listen_fd");
     }
     pktbuf_destroy(&conn->pktbuf);

@@ -175,7 +175,7 @@ static void emu_cont(void *args, gdb_action_t *ret)
         emu_exec(emu, inst);
     }
 
-    ret->reason = ACT_RESUME;
+    ret->reason = ACT_BREAKPOINT;
     ret->data = 0;
 }
 
@@ -191,7 +191,7 @@ static void emu_stepi(void *args, gdb_action_t *ret)
         emu_exec(emu, inst);
     }
 
-    ret->reason = ACT_RESUME;
+    ret->reason = ACT_BREAKPOINT;
     ret->data = 0;
 }
 
@@ -225,6 +225,12 @@ static void emu_on_interrupt(void *args)
     emu_halt(emu);
 }
 
+static char *emu_monitor(void *args, const char* s)
+{
+    struct emu *emu = (struct emu *) args;
+    return strdup(s);
+}
+
 struct target_ops emu_ops = {
     .read_reg = emu_read_reg,
     .write_reg = emu_write_reg,
@@ -235,6 +241,7 @@ struct target_ops emu_ops = {
     .set_bp = emu_set_bp,
     .del_bp = emu_del_bp,
     .on_interrupt = emu_on_interrupt,
+    .monitor = emu_monitor,
 };
 
 int main(int argc, char *argv[])
